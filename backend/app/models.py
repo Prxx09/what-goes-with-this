@@ -30,6 +30,12 @@ class WardrobeItemCreate(BaseModel):
     category: ItemCategory = ItemCategory.other
     color: str | None = Field(default=None, max_length=60)
     image_uri: str | None = None
+    item_type: str | None = Field(default=None, max_length=80)
+    secondary_colors: list[str] = Field(default_factory=list)
+    pattern: str | None = Field(default=None, max_length=40)
+    style_tags: list[str] = Field(default_factory=list)
+    season_tags: list[str] = Field(default_factory=list)
+    ai_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 class WardrobeItemUpdate(BaseModel):
@@ -37,6 +43,12 @@ class WardrobeItemUpdate(BaseModel):
     category: ItemCategory | None = None
     color: str | None = Field(default=None, max_length=60)
     image_uri: str | None = None
+    item_type: str | None = Field(default=None, max_length=80)
+    secondary_colors: list[str] | None = None
+    pattern: str | None = Field(default=None, max_length=40)
+    style_tags: list[str] | None = None
+    season_tags: list[str] | None = None
+    ai_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 class WardrobeItem(BaseModel):
@@ -45,4 +57,10 @@ class WardrobeItem(BaseModel):
     category: ItemCategory
     color: str | None = None
     image_uri: str | None = None
+    item_type: str | None = None
+    secondary_colors: list[str] = Field(default_factory=list)
+    pattern: str | None = None
+    style_tags: list[str] = Field(default_factory=list)
+    season_tags: list[str] = Field(default_factory=list)
+    ai_confidence: float | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -3,3 +3,4 @@ uvicorn[standard]==0.35.0
 pydantic==2.11.7
 python-multipart==0.0.20
 huggingface_hub>=0.34.4,<1.0
+python-dotenv==1.1.1

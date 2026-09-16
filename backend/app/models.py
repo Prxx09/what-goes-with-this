@@ -14,6 +14,17 @@ class ItemCategory(str, Enum):
     other = "other"
 
 
+class ClothingAnalysis(BaseModel):
+    category: ItemCategory
+    item_type: str = Field(min_length=1, max_length=80)
+    primary_color: str = Field(min_length=1, max_length=60)
+    secondary_colors: list[str] = Field(default_factory=list)
+    pattern: str = Field(min_length=1, max_length=40)
+    style_tags: list[str] = Field(default_factory=list)
+    season_tags: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0, le=1)
+
+
 class WardrobeItemCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: ItemCategory = ItemCategory.other

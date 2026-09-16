@@ -18,14 +18,14 @@ class WardrobeItemCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: ItemCategory = ItemCategory.other
     color: str | None = Field(default=None, max_length=60)
-    image_url: str | None = None
+    image_uri: str | None = None
 
 
 class WardrobeItemUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     category: ItemCategory | None = None
     color: str | None = Field(default=None, max_length=60)
-    image_url: str | None = None
+    image_uri: str | None = None
 
 
 class WardrobeItem(BaseModel):
@@ -33,5 +33,5 @@ class WardrobeItem(BaseModel):
     name: str
     category: ItemCategory
     color: str | None = None
-    image_url: str | None = None
+    image_uri: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

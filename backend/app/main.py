@@ -1,17 +1,11 @@
-from pathlib import Path
 from time import perf_counter
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from fastapi import FastAPI, File, HTTPException, Response, UploadFile, status
+from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from .models import WardrobeItem, WardrobeItemCreate, WardrobeItemUpdate
 from .store import wardrobe_store
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="What Goes With This API",
@@ -25,37 +19,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 @app.middleware("http")
 async def add_server_timing(request, call_next):
     started = perf_counter()
     response = await call_next(request)
-    response.headers["Server-Timing"] = f"app;dur={(perf_counter() - started) * 1000:.2f}"
+    elapsed_ms = (perf_counter() - started) * 1000
+    response.headers["Server-Timing"] = f"app;dur={elapsed_ms:.2f}"
     return response
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.post("/api/v1/uploads", status_code=status.HTTP_201_CREATED)
-async def upload_image(file: UploadFile = File(...)) -> dict[str, str]:
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image uploads are supported")
-
-    extension = Path(file.filename or "item.jpg").suffix.lower() or ".jpg"
-    filename = f"{uuid4().hex}{extension}"
-    destination = UPLOAD_DIR / filename
-
-    with destination.open("wb") as output:
-        while chunk := await file.read(1024 * 1024):
-            output.write(chunk)
-
-    await file.close()
-    return {"image_url": f"/uploads/{filename}"}
 
 
 @app.get("/api/v1/wardrobe", response_model=list[WardrobeItem])

@@ -2,7 +2,7 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { resolveImageUrl, wardrobeApi, WardrobeItem } from '../lib/api';
+import { wardrobeApi, WardrobeItem } from '../lib/api';
 
 export default function WardrobeScreen() {
   const [items, setItems] = useState<WardrobeItem[]>([]);
@@ -48,16 +48,13 @@ export default function WardrobeScreen() {
           keyExtractor={(item) => item.id}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.grid}
-          renderItem={({ item }) => {
-            const image = resolveImageUrl(item.image_url);
-            return (
-              <View style={styles.card}>
-                <View style={styles.imageBox}>{image ? <Image source={{ uri: image }} style={styles.image} /> : <Text style={styles.imagePlaceholder}>No image</Text>}</View>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.meta}>{item.color ? `${item.color} · ` : ''}{item.category}</Text>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.imageBox}>{item.image_uri ? <Image source={{ uri: item.image_uri }} style={styles.image} /> : <Text style={styles.imagePlaceholder}>No image</Text>}</View>
+              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.meta}>{item.color ? `${item.color} · ` : ''}{item.category}</Text>
+            </View>
+          )}
         />
       )}
     </SafeAreaView>

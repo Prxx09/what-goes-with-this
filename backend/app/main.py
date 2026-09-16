@@ -1,15 +1,19 @@
+import base64
+import json
+import os
 from time import perf_counter
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from huggingface_hub import InferenceClient
 
-from .models import WardrobeItem, WardrobeItemCreate, WardrobeItemUpdate
+from .models import ClothingAnalysis, WardrobeItem, WardrobeItemCreate, WardrobeItemUpdate
 from .store import wardrobe_store
 
 app = FastAPI(
     title="What Goes With This API",
-    version="0.2.0",
+    version="0.3.0",
     description="Low-latency wardrobe and outfit recommendation API.",
 )
 
@@ -30,9 +34,87 @@ async def add_server_timing(request, call_next):
     return response
 
 
+def _extract_json(text: str) -> dict:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("Vision model did not return valid JSON")
+    return json.loads(text[start : end + 1])
+
+
+async def _analyze_clothing(image_bytes: bytes, content_type: str) -> tuple[ClothingAnalysis, float]:
+    api_key = os.getenv("HF_TOKEN")
+    if not api_key:
+        raise RuntimeError("HF_TOKEN is not configured")
+
+    model = os.getenv("HF_VISION_MODEL", "Qwen/Qwen2.5-VL-3B-Instruct")
+    encoded = base64.b64encode(image_bytes).decode("utf-8")
+    image_url = f"data:{content_type};base64,{encoded}"
+
+    prompt = (
+        "Analyze the main wardrobe item in this image. Return only valid JSON with these keys: "
+        "category, item_type, primary_color, secondary_colors, pattern, style_tags, season_tags, confidence. "
+        "category must be one of: top, bottom, shoes, outerwear, accessory, other. "
+        "secondary_colors, style_tags and season_tags must be JSON arrays of short strings. "
+        "confidence must be a number between 0 and 1. Do not include markdown or explanation."
+    )
+
+    client = InferenceClient(api_key=api_key, provider="auto")
+    started = perf_counter()
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": image_url}},
+                ],
+            }
+        ],
+        max_tokens=300,
+        temperature=0,
+    )
+    latency_ms = (perf_counter() - started) * 1000
+
+    raw = completion.choices[0].message.content
+    if not raw:
+        raise ValueError("Vision model returned an empty response")
+
+    return ClothingAnalysis.model_validate(_extract_json(raw)), latency_ms
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/v1/analyze-clothing", response_model=ClothingAnalysis)
+async def analyze_clothing(file: UploadFile = File(...)) -> Response:
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(status_code=415, detail="Use a JPEG, PNG, or WebP image")
+
+    image_bytes = await file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty")
+    if len(image_bytes) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Image must be 8 MB or smaller")
+
+    try:
+        analysis, inference_ms = await _analyze_clothing(image_bytes, content_type)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=502, detail="Vision model returned an invalid response") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Vision provider request failed") from exc
+
+    return Response(
+        content=analysis.model_dump_json(),
+        media_type="application/json",
+        headers={"X-Vision-Latency-Ms": f"{inference_ms:.2f}"},
+    )
 
 
 @app.get("/api/v1/wardrobe", response_model=list[WardrobeItem])

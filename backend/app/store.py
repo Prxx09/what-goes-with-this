@@ -4,12 +4,6 @@ from .models import WardrobeItem, WardrobeItemCreate, WardrobeItemUpdate
 
 
 class WardrobeStore:
-    """Fast in-memory store for the first vertical slice.
-
-    The interface intentionally isolates persistence so SQLite/Postgres can
-    replace this implementation without changing the API contract.
-    """
-
     def __init__(self) -> None:
         self._items: dict[UUID, WardrobeItem] = {}
 

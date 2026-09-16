@@ -1,0 +1,42 @@
+name: Test Hugging Face Vision Models
+
+on:
+  push:
+    branches:
+      - test/vision-models-actions
+  workflow_dispatch:
+
+jobs:
+  test-vision-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install test dependency
+        run: python -m pip install "huggingface_hub>=0.34.4,<1.0"
+
+      - name: Check HF secret exists
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN repository secret is missing."
+            exit 1
+          fi
+          echo "HF_TOKEN secret is configured."
+
+      - name: Test candidate vision models
+        working-directory: backend
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tests/test_hf_models.py

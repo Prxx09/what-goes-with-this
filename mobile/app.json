@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "What Goes With This?",
+    "slug": "what-goes-with-this",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "wgwt",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow What Goes With This to access photos you choose for your wardrobe.",
+          "cameraPermission": "Allow What Goes With This to photograph wardrobe items."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

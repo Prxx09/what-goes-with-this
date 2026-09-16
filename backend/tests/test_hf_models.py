@@ -1,7 +1,5 @@
-import base64
 import os
 import time
-from pathlib import Path
 
 from huggingface_hub import InferenceClient
 
@@ -11,9 +9,11 @@ MODELS = [
     "zai-org/GLM-4.5V",
 ]
 
+# Public remote fixtures keep the Actions test self-contained. The black-shirt
+# fixture closely matches the user-provided black T-shirt test case.
 IMAGES = {
-    "black_tshirt": Path(__file__).parent / "data" / "black_tshirt.b64",
-    "beige_cargo_pants": Path(__file__).parent / "data" / "beige_cargo_pants.b64",
+    "black_tshirt": "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=500&q=80",
+    "cargo_pants": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=500&q=80",
 }
 
 PROMPT = """Look carefully at the image and identify the main clothing item.
@@ -23,9 +23,7 @@ Do not output JSON and do not add explanation.
 """
 
 
-def run(model: str, name: str, b64_path: Path, client: InferenceClient) -> bool:
-    b64 = b64_path.read_text().strip()
-    data_url = f"data:image/jpeg;base64,{b64}"
+def run(model: str, name: str, image_url: str, client: InferenceClient) -> bool:
     started = time.perf_counter()
     try:
         out = client.chat.completions.create(
@@ -34,7 +32,7 @@ def run(model: str, name: str, b64_path: Path, client: InferenceClient) -> bool:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": PROMPT},
-                    {"type": "image_url", "image_url": {"url": data_url}},
+                    {"type": "image_url", "image_url": {"url": image_url}},
                 ],
             }],
             max_tokens=80,
@@ -68,14 +66,11 @@ def main() -> None:
     for model in MODELS:
         print("\n" + "=" * 90)
         print("MODEL:", model)
-        for name, path in IMAGES.items():
-            successes += int(run(model, name, path, client))
+        for name, image_url in IMAGES.items():
+            successes += int(run(model, name, image_url, client))
 
     print("\n" + "=" * 90)
     print(f"Successful calls: {successes}/{len(MODELS) * len(IMAGES)}")
-
-    # Candidate models can legitimately be unavailable through the current
-    # provider/account. Fail only if none of the model/image calls work.
     if successes == 0:
         raise SystemExit(1)
 

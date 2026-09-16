@@ -1,0 +1,40 @@
+name: Test Vision Providers
+
+on:
+  push:
+    branches:
+      - test/vision-models-actions
+  workflow_dispatch:
+
+jobs:
+  test-vision-providers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install "huggingface_hub>=0.34.4,<1.0" "groq>=1.2.0"
+
+      - name: Check configured secrets
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          Groq_API: ${{ secrets.Groq_API }}
+        run: |
+          if [ -n "$HF_TOKEN" ]; then echo "HF_TOKEN configured"; else echo "HF_TOKEN missing"; fi
+          if [ -n "$Groq_API" ]; then echo "Groq_API configured"; else echo "Groq_API missing"; fi
+          if [ -z "$HF_TOKEN" ] && [ -z "$Groq_API" ]; then exit 1; fi
+
+      - name: Test Groq and Hugging Face vision
+        working-directory: backend
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          Groq_API: ${{ secrets.Groq_API }}
+        run: python tests/test_vision_providers.py

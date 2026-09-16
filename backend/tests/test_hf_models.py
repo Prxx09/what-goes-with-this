@@ -9,11 +9,9 @@ MODELS = [
     "zai-org/GLM-4.5V",
 ]
 
-# Public remote fixtures keep the Actions test self-contained. The black-shirt
-# fixture closely matches the user-provided black T-shirt test case.
 IMAGES = {
     "black_tshirt": "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=500&q=80",
-    "cargo_pants": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=500&q=80",
+    "cargo_pants": "https://images.unsplash.com/photo-1511794322962-129ddbd0af38?auto=format&fit=crop&w=700&q=80",
 }
 
 PROMPT = """Look carefully at the image and identify the main clothing item.
@@ -44,19 +42,14 @@ def run(model: str, name: str, image_url: str, client: InferenceClient) -> bool:
         return True
     except Exception as exc:
         elapsed_ms = (time.perf_counter() - started) * 1000
-        print(
-            f"FAIL | {model} | {name} | {elapsed_ms:.0f} ms | "
-            f"{type(exc).__name__}: {exc}"
-        )
+        print(f"FAIL | {model} | {name} | {elapsed_ms:.0f} ms | {type(exc).__name__}: {exc}")
         return False
 
 
 def main() -> None:
     token = os.getenv("HF_TOKEN")
     if not token:
-        raise SystemExit(
-            "HF_TOKEN is missing. Add a GitHub Actions repository secret named HF_TOKEN."
-        )
+        raise SystemExit("HF_TOKEN is missing. Add a GitHub Actions repository secret named HF_TOKEN.")
 
     client = InferenceClient(api_key=token, provider="auto")
     print("Testing Hugging Face VLM availability + clothing recognition")

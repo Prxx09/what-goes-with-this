@@ -22,14 +22,20 @@ export default function AddItemScreen() {
     setAnalysis(null);
     setAnalyzing(true);
     setError(null);
+
     try {
       const result = await wardrobeApi.analyzeImage(uri);
       setAnalysis(result);
       setCategory(result.category);
       setColor(result.primary_color);
       setName(`${result.primary_color} ${result.item_type}`.trim());
-    } catch {
-      setError('AI analysis failed. You can still enter the details manually and save the item.');
+    } catch (err) {
+      console.error('AI analysis failed:', err);
+      setError(
+        err instanceof Error
+          ? `AI analysis failed: ${err.message}`
+          : 'AI analysis failed. You can still enter the details manually and save the item.',
+      );
     } finally {
       setAnalyzing(false);
     }
@@ -73,8 +79,9 @@ export default function AddItemScreen() {
         ai_confidence: analysis?.confidence,
       });
       router.back();
-    } catch {
-      setError('Could not save this wardrobe item. Check that the API is running and reachable.');
+    } catch (err) {
+      console.error('Wardrobe save failed:', err);
+      setError(err instanceof Error ? `Could not save this wardrobe item: ${err.message}` : 'Could not save this wardrobe item.');
     } finally {
       setSaving(false);
     }

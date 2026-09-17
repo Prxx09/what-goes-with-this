@@ -1,3 +1,5 @@
+import { fetch as expoFetch } from 'expo/fetch';
+import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 export type WardrobeCategory = 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessory' | 'other';
@@ -64,8 +66,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function createImageForm(uri: string): Promise<FormData> {
-  const form = new FormData();
+async function uploadForm<T>(path: string, uri: string): Promise<T> {
+  const url = `${API_URL}${path}`;
+  console.log('[api] POST', url);
+
+  let response: Response;
 
   if (Platform.OS === 'web') {
     const imageResponse = await fetch(uri);
@@ -80,32 +85,27 @@ async function createImageForm(uri: string): Promise<FormData> {
         ? 'wardrobe.webp'
         : 'wardrobe.jpg';
 
+    const form = new FormData();
     form.append('file', blob, fileName);
-    return form;
+
+    response = await fetch(url, {
+      method: 'POST',
+      body: form,
+    });
+  } else {
+    const file = new File(uri);
+    if (!file.exists) {
+      throw new Error('Selected image file is no longer available');
+    }
+
+    const form = new FormData();
+    form.append('file', file);
+
+    response = await expoFetch(url, {
+      method: 'POST',
+      body: form,
+    }) as unknown as Response;
   }
-
-  const clean = uri.split('?')[0].toLowerCase();
-  const type = clean.endsWith('.png') ? 'image/png' : clean.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-  const extension = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
-
-  form.append('file', {
-    uri,
-    name: `wardrobe.${extension}`,
-    type,
-  } as any);
-
-  return form;
-}
-
-async function uploadForm<T>(path: string, uri: string): Promise<T> {
-  const form = await createImageForm(uri);
-  const url = `${API_URL}${path}`;
-  console.log('[api] POST', url);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: form,
-  });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');

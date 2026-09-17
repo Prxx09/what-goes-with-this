@@ -11,10 +11,12 @@ export default function WardrobeScreen() {
 
   const loadWardrobe = useCallback(async () => {
     try {
+      setLoading(true);
       setError(null);
       setItems(await wardrobeApi.list());
-    } catch {
-      setError('Could not reach the wardrobe API.');
+    } catch (err) {
+      console.error('Wardrobe load failed:', err);
+      setError(err instanceof Error ? `Could not load wardrobe: ${err.message}` : 'Could not load wardrobe.');
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ const styles = StyleSheet.create({
   emptyCopy: { fontSize: 15, color: '#666', textAlign: 'center' },
   primaryButton: { marginTop: 8, backgroundColor: '#171717', borderRadius: 16, paddingHorizontal: 24, paddingVertical: 15 },
   primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  error: { color: '#8A3030' }, retry: { fontWeight: '700' },
+  error: { color: '#8A3030', textAlign: 'center' }, retry: { fontWeight: '700' },
   grid: { paddingTop: 24, paddingBottom: 30 }, gridRow: { gap: 12 },
   card: { flex: 1, marginBottom: 20, maxWidth: '49%' },
   imageBox: { aspectRatio: 0.82, borderRadius: 18, backgroundColor: '#EFEFEB', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

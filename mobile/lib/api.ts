@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { fetch as expoFetch } from 'expo/fetch';
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
@@ -43,7 +44,39 @@ export type WardrobeItemCreate = {
   ai_confidence?: number;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+function getExpoDevHost(): string | null {
+  if (Platform.OS === 'web') return null;
+
+  const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost;
+  if (!hostUri) return null;
+
+  const host = hostUri.split(':')[0];
+  return host || null;
+}
+
+function resolveApiUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const devHost = getExpoDevHost();
+
+  if (configured) {
+    if (Platform.OS !== 'web' && devHost && /\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configured)) {
+      const portMatch = configured.match(/:(\d+)$/);
+      const port = portMatch?.[1] ?? '8000';
+      return `http://${devHost}:${port}`;
+    }
+
+    return configured.replace(/\/$/, '');
+  }
+
+  if (Platform.OS !== 'web' && devHost) {
+    return `http://${devHost}:8000`;
+  }
+
+  return 'http://localhost:8000';
+}
+
+const API_URL = resolveApiUrl();
+console.log('[api] resolved base URL:', API_URL);
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_URL}${path}`;
